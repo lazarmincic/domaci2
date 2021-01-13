@@ -60,6 +60,7 @@ static struct device *my_device;
 static struct cdev *my_cdev;
 static struct timer_info *tp = NULL;
 
+int endRead = 0;
 
 static irqreturn_t xilaxitimer_isr(int irq,void*dev_id);
 static void write_timer(unsigned int dani,unsigned int sati,unsigned int minuti,unsigned int sekunde);
@@ -129,11 +130,10 @@ static irqreturn_t xilaxitimer_isr(int irq,void*dev_id)
 //***************************************************
 //HELPER FUNCTION THAT RESETS AND STARTS TIMER WITH PERIOD IN MILISECONDS
 
-static void write_timer(unsigned int dani,unsigned int sati,unsigned int minuti,unsigned int sekunde);
+static void write_timer(unsigned int dani,unsigned int sati,unsigned int minuti,unsigned int sekunde)
 {
 	// Disable Timer Counter
 	u64 timer_load;
-	u64 zero = 0;
 	u64 sec = 0;
 	u32 data = 0;
 	u32 donji = 0;
@@ -187,7 +187,7 @@ static void write_timer(unsigned int dani,unsigned int sati,unsigned int minuti,
 static void start_timer(void)
 {
 	// Start Timer bz setting the all enable signal
-	data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
+	u32 data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
 	iowrite32(data | XIL_AXI_TIMER_CSR_ENABLE_TMR_MASK,
 			tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
 	printk(KERN_INFO "Tajmer je poceo sa brojanjem.\n");
@@ -196,6 +196,7 @@ static void start_timer(void)
 // unos : stop
 static void stop_timer(void)
 {
+	u32 data;
 	printk(KERN_NOTICE "Stopping timer\n");
 	data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
 	iowrite32(data & ~(XIL_AXI_TIMER_CSR_ENABLE_TMR_MASK), tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
@@ -345,7 +346,7 @@ ssize_t timer_read(struct file *pfile, char __user *buffer, size_t length, loff_
 ssize_t timer_write(struct file *pfile, const char __user *buffer, size_t length, loff_t *offset) 
 {
 	char buff[BUFF_SIZE];
-	int dani = 0, sati = 0, minuti = 0, sekunde = 0, millis = 0;
+	int dani = 0, sati = 0, minuti = 0, sekunde = 0;
 	int ret = 0;
 	ret = copy_from_user(buff, buffer, length);
 	if(ret)
@@ -361,7 +362,7 @@ ssize_t timer_write(struct file *pfile, const char __user *buffer, size_t length
 		}
 		else
 		{
-			printk(KERN_INFO "xilaxitimer_write: Writing values in the registers. \n",number,millis);
+			printk(KERN_INFO "xilaxitimer_write: Writing values in the registers. \n");
 			write_timer(dani,sati,minuti,sekunde);
 		}
 
