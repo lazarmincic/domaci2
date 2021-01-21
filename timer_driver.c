@@ -13,6 +13,7 @@
 #include <linux/io.h> //iowrite ioread
 #include <linux/slab.h>//kmalloc kfree
 #include <linux/platform_device.h>//platform driver
+#include <linux/of.h>//of_match_table
 #include <linux/ioport.h>//ioremap
 
 #include <linux/interrupt.h> //irqreturn_t, request_irq
