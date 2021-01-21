@@ -60,7 +60,7 @@ static struct device *my_device;
 static struct cdev *my_cdev;
 static struct timer_info *tp = NULL;
 
-int endRead = 0;
+static int endRead = 0;
 
 static irqreturn_t xilaxitimer_isr(int irq,void*dev_id);
 static void write_timer(unsigned int dani,unsigned int sati,unsigned int minuti,unsigned int sekunde);
