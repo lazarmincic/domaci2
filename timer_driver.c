@@ -112,8 +112,6 @@ static irqreturn_t xilaxitimer_isr(int irq,void*dev_id)
 {      
 	uint32_t data = 0;
 
-	// Check Timer Counter Value
-	//data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCR_OFFSET);
 	printk(KERN_INFO "xilaxitimer_isr: Isteklo vreme !\n");
 
 	// Clear Interrupt
@@ -125,8 +123,6 @@ static irqreturn_t xilaxitimer_isr(int irq,void*dev_id)
 	printk(KERN_NOTICE "xilaxitimer_isr: Disabling timer\n");
 	data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
 	iowrite32(data & ~(XIL_AXI_TIMER_CSR_ENABLE_TMR_MASK), tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
-	//data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCSR1_OFFSET);
-	//iowrite32(data & ~(XIL_AXI_TIMER_CSR_ENABLE_TMR_MASK), tp->base_addr + XIL_AXI_TIMER_TCSR1_OFFSET);
 	strt = 0;
 	rdy = 0;
 	return IRQ_HANDLED;
@@ -144,13 +140,12 @@ static void write_timer(int dani,int sati,int minuti,int sekunde)
 	uint32_t gornji = 0;
 
 	sec = (uint64_t)dani* 86400 +(uint64_t)sati*3600 + (uint64_t)minuti*60 + (uint64_t)sekunde;
-//	printk(KERN_INFO "%llu\n",(unsigned long long)sec);
 	timer_load = sec*100000000;
 	gornji = (uint32_t)((timer_load & 0xFFFFFFFF00000000) >> 32);
 	donji = (uint32_t)(timer_load & 0x00000000FFFFFFFF);
 
-	printk(KERN_INFO "gornji: %lu\n",(unsigned long)gornji);
-	printk(KERN_INFO "donji: %lu\n",(unsigned long)donji);
+	//printk(KERN_INFO "gornji: %lu\n",(unsigned long)gornji);
+	//printk(KERN_INFO "donji: %lu\n",(unsigned long)donji);
 
 	// Clear the timer enable bits in control registers TCSR0 and TCSR1
 	data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
@@ -203,16 +198,17 @@ static void start_timer(void)
 {
 	uint32_t data;
 	if (!rdy){
-		printk(KERN_INFO "Tajmer nije podesen.\n");
+		printk(KERN_INFO "xilaxitimer_write: Tajmer nije podesen.\n");
 		return;  	}
 	if (strt){
-		printk(KERN_INFO "Tajmer je prethodno pokrenut.\n");
+		printk(KERN_INFO "xilaxitimer_write: Tajmer vec broji.\n");
 		return;	}
+
 	// Start Timer bz setting the all enable signal
 	data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
 	iowrite32(data | XIL_AXI_TIMER_CSR_ENABLE_TMR_MASK,
 			tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
-	printk(KERN_INFO "Tajmer je poceo sa brojanjem.\n");
+	printk(KERN_INFO "xilaxitimer_write: Tajmer je poceo sa brojanjem.\n");
 	strt = 1;
 }
 
@@ -221,12 +217,12 @@ static void stop_timer(void)
 {
 	uint32_t data;
 	if (!rdy){
-		printk(KERN_INFO "Tajmer nije podesen. \n");
+		printk(KERN_INFO "xilaxitimer_write: Tajmer nije podesen. \n");
 		return;	}
 	if (!strt){
-		printk(KERN_INFO "Tajmer nije pokrenut!\n");
+		printk(KERN_INFO "xilaxitimer_write: Tajmer ne broji!\n");
 		return;	}
-	printk(KERN_NOTICE "Stopping timer\n");
+	printk(KERN_NOTICE "xilaxitimer_write: Stopping timer\n");
 	data = ioread32(tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
 	iowrite32(data & ~(XIL_AXI_TIMER_CSR_ENABLE_TMR_MASK), tp->base_addr + XIL_AXI_TIMER_TCSR_OFFSET);
 	strt = 0;
@@ -327,13 +323,13 @@ static int timer_remove(struct platform_device *pdev)
 
 int timer_open(struct inode *pinode, struct file *pfile) 
 {
-	printk(KERN_INFO "Succesfully opened timer\n");
+//	printk(KERN_INFO "Succesfully opened timer\n");
 	return 0;
 }
 
 int timer_close(struct inode *pinode, struct file *pfile) 
 {
-	printk(KERN_INFO "Succesfully closed timer\n");
+//	printk(KERN_INFO "Succesfully closed timer\n");
 	return 0;
 }
 
@@ -360,21 +356,18 @@ ssize_t timer_read(struct file *pfile, char __user *buffer, size_t length, loff_
 		data1 = ioread32(tp->base_addr + XIL_AXI_TIMER_TCR1_OFFSET);
 	}
 	sek = (((uint64_t)data1) << 32) | (uint64_t)data0;
-	printk(KERN_INFO "Ocitana vr. timera: %llu\n",sek);
-	//sekundi = (unsigned long)(do_div(sek,100000000));
-	//sek /=100000000;
+	//printk(KERN_INFO "Ocitana vr. timera: %llu\n",sek);
 	while (sek >= 100000000)
 	{
 		sek -= 100000000;
 		sekundi++; 
 	}
-	printk(KERN_INFO "Ocitane sekunde: %lu\n",sekundi);
-	if (rdy == 0)
+	//printk(KERN_INFO "Ocitane sekunde: %lu\n",sekundi);
+	if (!rdy)
 	{
-		printk(KERN_INFO "Tajmer nije inicijalizovan");
+		printk(KERN_INFO "xilaxitimer_read: Tajmer nije inicijalizovan");
 		return 0;
 	}
-	//sekundi = sek;
 	dani = sekundi / (24 * 3600); 
    	 sekundi = sekundi % (24 * 3600); 
    	 sati = sekundi / 3600; 
@@ -386,7 +379,7 @@ ssize_t timer_read(struct file *pfile, char __user *buffer, size_t length, loff_
 	ret = copy_to_user(buffer, buff, len);
 	if(ret)
 		return -EFAULT;
-	printk(KERN_INFO "Succesfully read\n");
+	printk(KERN_INFO "xilaxitimer_read: Succesfully read\n");
 	endRead = 1;
 
 	return len;
@@ -406,9 +399,10 @@ ssize_t timer_write(struct file *pfile, const char __user *buffer, size_t length
 	ret = sscanf(buff,"%d:%d:%d:%d",&dani,&sati,&minuti,&sekunde);
 	if(ret == 4)
 	{
-		if ((dani>99 || dani<0)&&(sati>99 || sati<0)&&(minuti>99 || minuti<0)&&(sekunde>99 || sekunde<0))
+		if ((dani>99 || dani<0)||(sati>99 || sati<0)||(minuti>99 || minuti<0)||(sekunde>99 || sekunde<0))
 		{
 			printk(KERN_WARNING "xilaxitimer_write: Wrong format, all values should be positive double-digit numbers \n");
+			return -1;
 		}
 		else
 		{
@@ -419,7 +413,6 @@ ssize_t timer_write(struct file *pfile, const char __user *buffer, size_t length
 	}
 	else if (strcmp("start\n",buff)==0)
 	{
-//		printk(KERN_WARNING "xilaxitimer_write: Wrong format, expected n,t \n\t n-number of interrupts\n\t t-time in ms between interrupts\n");
 		start_timer();
 	}
 	else if (strcmp("stop\n",buff)==0)
